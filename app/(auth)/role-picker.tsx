@@ -6,18 +6,20 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../components/atoms/Button';
 import { Card } from '../../components/atoms/Card';
 import { useAuth } from '../../store/useAuth';
+import { apiRequest } from '../../lib/api';
 import { safeTheme as theme } from '../../lib/theme';
 import { t } from '../../lib/i18n';
 
 export default function RolePickerScreen() {
   const navigation = useNavigation();
-  const { updateUser, user, token } = useAuth();
+  const { updateUser, setAuthenticated } = useAuth();
   const [selectedRole, setSelectedRole] = useState<'client' | 'transporter' | null>(null);
 
   const handleRoleSelect = (role: 'client' | 'transporter') => {
@@ -30,25 +32,21 @@ export default function RolePickerScreen() {
       return;
     }
 
-    updateUser({ role: selectedRole });
-
-    // Optional: call backend to update role on profile if needed in future
-    // We only set locally for Phase A since backend lacks profile update
-    
-    // Navigate to appropriate screen based on role
-    if (selectedRole === 'transporter') {
-      // For transporters, they need to complete KYC first
-      // For now, we'll just navigate to home
-      navigation.navigate('MainTabs' as never);
-    } else {
-      // Clients can go directly to home
-      navigation.navigate('MainTabs' as never);
+    try {
+      // Persist role to backend then update local store
+      // @ts-expect-error token from store
+      const updated = await apiRequest('/users/me', { method: 'PATCH', body: { role: selectedRole }, token: (useAuth.getState().token as any) });
+      updateUser({ role: selectedRole });
+      setAuthenticated(true);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to save role';
+      Alert.alert('Error', message);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={styles.title}>{t('selectRole', 'en')}</Text>
           <Text style={styles.subtitle}>
@@ -133,7 +131,7 @@ export default function RolePickerScreen() {
             style={styles.continueButton}
           />
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

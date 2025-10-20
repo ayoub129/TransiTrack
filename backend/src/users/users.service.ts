@@ -1,43 +1,48 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { UserEntity, UserRole } from './user.entity';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { User, UserDocument, UserRole } from './user.schema';
 
 @Injectable()
 export class UsersService {
-  private users: UserEntity[] = [];
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async create(data: { email: string; password: string; role: UserRole; firstName?: string; lastName?: string; phone?: string; }): Promise<UserEntity> {
-    const now = new Date();
+  async create(data: { email: string; password: string; role: UserRole; firstName?: string; lastName?: string; phone?: string; }) {
+    const exists = await this.userModel.findOne({ email: data.email.toLowerCase() }).lean();
+    if (exists) throw new BadRequestException('Email already registered');
     const hashed = await bcrypt.hash(data.password, 10);
-    const user: UserEntity = {
-      id: randomUUID(),
+    const created = await this.userModel.create({
       email: data.email.toLowerCase(),
       password: hashed,
       role: data.role,
-      createdAt: now,
-      updatedAt: now,
       firstName: data.firstName,
       lastName: data.lastName,
       phone: data.phone,
-    };
-    this.users.push(user);
-    return { ...user, password: undefined as any };
+    });
+    const obj = created.toObject();
+    // remove password before returning
+    delete (obj as any).password;
+    return obj;
   }
 
-  async findByEmail(email: string): Promise<UserEntity | undefined> {
-    return this.users.find(u => u.email === email.toLowerCase());
+  async findByEmail(email: string) {
+    return this.userModel.findOne({ email: email.toLowerCase() });
   }
 
-  async findById(id: string): Promise<UserEntity | undefined> {
-    return this.users.find(u => u.id === id);
+  async findById(id: string) {
+    return this.userModel.findById(id);
   }
 
-  async validateUser(email: string, password: string): Promise<UserEntity | null> {
+  async validateUser(email: string, password: string) {
     const user = await this.findByEmail(email);
     if (!user) return null;
     const ok = await bcrypt.compare(password, user.password);
     return ok ? user : null;
+  }
+
+  async updateById(id: string, update: Partial<User>) {
+    return this.userModel.findByIdAndUpdate(id, update, { new: true });
   }
 }
 

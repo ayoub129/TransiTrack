@@ -109,6 +109,7 @@ function RootStack() {
       }}
     >
       <Stack.Screen name="MainTabs" component={MainTabs} />
+      {/* RolePicker intentionally NOT in RootStack to avoid showing after logout */}
       
       {/* Offer Flow */}
       <Stack.Screen 

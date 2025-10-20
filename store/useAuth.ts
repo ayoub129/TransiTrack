@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type User } from '../lib/api.mock';
 import { apiRequest } from '../lib/api';
 
@@ -12,6 +13,7 @@ interface AuthState {
   register: (userData: Partial<User>) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
+  setAuthenticated: (value: boolean) => void;
 }
 
 export const useAuth = create<AuthState>()(
@@ -50,7 +52,8 @@ export const useAuth = create<AuthState>()(
               phone: userData.phone,
             } }
           );
-          set({ user: res.user, token: res.accessToken, isAuthenticated: true, isLoading: false });
+          // Do not authenticate yet; complete role selection first
+          set({ user: res.user, token: res.accessToken, isAuthenticated: false, isLoading: false });
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -67,9 +70,14 @@ export const useAuth = create<AuthState>()(
           set({ user: { ...currentUser, ...userData } });
         }
       },
+
+      setAuthenticated: (value: boolean) => {
+        set({ isAuthenticated: value });
+      },
     }),
     {
       name: 'auth-storage',
+      storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         user: state.user,
         token: state.token,

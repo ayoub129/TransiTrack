@@ -10,7 +10,7 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
     const user = await this.users.create({
       email: dto.email,
       password: dto.password,
@@ -19,21 +19,25 @@ export class AuthService {
       lastName: dto.lastName,
       phone: dto.phone,
     });
-    const tokens = this.issueTokens(user.id, user.email, user.role);
+    const userId = (user as any)._id?.toString?.() || (user as any).id;
+    const tokens = this.issueTokens(userId, user.email, user.role);
     return { ...tokens, user };
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
     const user = await this.users.validateUser(dto.email, dto.password);
     if (!user) throw new UnauthorizedException('Invalid credentials');
-    const tokens = this.issueTokens(user.id, user.email, user.role);
+    const userId = (user as any)._id?.toString?.() || (user as any).id;
+    const tokens = this.issueTokens(userId, (user as any).email, (user as any).role);
     return { ...tokens, user: { ...user, password: undefined } };
   }
 
-  async me(user: any) {
+  async me(user: any): Promise<any> {
     const dbUser = await this.users.findById(user.sub);
     if (!dbUser) throw new UnauthorizedException();
-    return { ...dbUser, password: undefined };
+    const obj = dbUser.toObject ? dbUser.toObject() : dbUser;
+    delete (obj as any).password;
+    return obj;
   }
 
   private issueTokens(sub: string, email: string, role: string) {

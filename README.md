@@ -247,6 +247,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 PORT=3000
 JWT_SECRET=super-secret-change-me
 JWT_REFRESH_SECRET=another-super-secret-change-me
+MONGO_URI=mongodb://127.0.0.1:27017/transport
 ```
 
 2) Install & run:

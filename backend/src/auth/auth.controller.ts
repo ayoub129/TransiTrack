@@ -8,13 +8,24 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.auth.register(dto);
+  async register(@Body() dto: RegisterDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
+    try {
+      return await this.auth.register(dto);
+    } catch (e: any) {
+      // basic log; in prod use a proper logger
+      console.error('Register error:', e?.message || e);
+      throw e;
+    }
   }
 
   @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto);
+  async login(@Body() dto: LoginDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
+    try {
+      return await this.auth.login(dto);
+    } catch (e: any) {
+      console.error('Login error:', e?.message || e);
+      throw e;
+    }
   }
 
   @Get('me')

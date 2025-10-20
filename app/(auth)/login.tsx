@@ -15,6 +15,7 @@ import { Input } from '../../components/atoms/Input';
 import { useAuth } from '../../store/useAuth';
 import { safeTheme as theme } from '../../lib/theme';
 import { t } from '../../lib/i18n';
+import { Alert as Banner } from '../../components/atoms/Alert';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -23,6 +24,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [formError, setFormError] = useState<string | null>(null);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -47,9 +49,11 @@ export default function LoginScreen() {
     if (!validateForm()) return;
     
     try {
+      setFormError(null);
       await login(email, password);
     } catch (error) {
-      Alert.alert('Login Failed', 'Invalid email or password');
+      const message = error instanceof Error ? error.message : 'Login failed';
+      setFormError(message);
     }
   };
 
@@ -72,6 +76,7 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.form}>
+          {formError && <Banner variant="error" message={formError} />}
           <Input
             label={t('email', 'en')}
             placeholder="Enter your email"

@@ -15,6 +15,7 @@ import { Input } from '../../components/atoms/Input';
 import { useAuth } from '../../store/useAuth';
 import { safeTheme as theme } from '../../lib/theme';
 import { t } from '../../lib/i18n';
+import { Alert as Banner } from '../../components/atoms/Alert';
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
@@ -29,6 +30,7 @@ export default function RegisterScreen() {
     confirmPassword: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
 
   const updateField = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -78,18 +80,22 @@ export default function RegisterScreen() {
     if (!validateForm()) return;
     
     try {
+      setFormError(null);
       await register({
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
         role: 'client', // Default role, will be changed in role picker
-        // @ts-expect-error include password for backend register
         password: formData.password,
       } as any);
-      navigation.navigate('RolePicker' as never);
+      // User is not marked authenticated yet; RolePicker exists in Auth stack
+      // @ts-expect-error navigation types
+      navigation.navigate('RolePicker');
     } catch (error) {
-      Alert.alert('Registration Failed', 'Please try again');
+      console.log('Register error:', error);
+      const message = error instanceof Error ? error.message : 'Please try again';
+      setFormError(message);
     }
   };
 
@@ -112,26 +118,24 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.form}>
-          <View style={styles.nameRow}>
-            <Input
-              label="First Name"
-              placeholder="Enter first name"
-              value={formData.firstName}
-              onChangeText={(value) => updateField('firstName', value)}
-              error={errors.firstName}
-              style={styles.halfInput}
-              required
-            />
-            <Input
-              label="Last Name"
-              placeholder="Enter last name"
-              value={formData.lastName}
-              onChangeText={(value) => updateField('lastName', value)}
-              error={errors.lastName}
-              style={styles.halfInput}
-              required
-            />
-          </View>
+          {formError && <Banner variant="error" message={formError} />}
+          {/* Name inputs full-width, stacked */}
+          <Input
+            label="First Name"
+            placeholder="Enter first name"
+            value={formData.firstName}
+            onChangeText={(value) => updateField('firstName', value)}
+            error={errors.firstName}
+            required
+          />
+          <Input
+            label="Last Name"
+            placeholder="Enter last name"
+            value={formData.lastName}
+            onChangeText={(value) => updateField('lastName', value)}
+            error={errors.lastName}
+            required
+          />
 
           <Input
             label={t('email', 'en')}
@@ -233,13 +237,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  nameRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.m,
-  },
-  halfInput: {
-    flex: 1,
-  },
+  // name inputs are full-width by default
   registerButton: {
     marginTop: theme.spacing.l,
     marginBottom: theme.spacing.xl,

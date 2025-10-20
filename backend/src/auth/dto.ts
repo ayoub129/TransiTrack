@@ -1,5 +1,4 @@
-import { IsEmail, IsEnum, IsString, MinLength } from 'class-validator';
-import { UserRole } from '../users/user.entity';
+import { IsEmail, IsIn, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @IsEmail()
@@ -9,8 +8,8 @@ export class RegisterDto {
   @MinLength(6)
   password!: string;
 
-  @IsEnum(['client', 'transporteur', 'admin'] as any)
-  role!: UserRole;
+  @IsIn(['client', 'transporter', 'admin'])
+  role!: 'client' | 'transporter' | 'admin';
 
   @IsString()
   firstName?: string;
